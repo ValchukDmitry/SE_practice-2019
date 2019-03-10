@@ -61,11 +61,12 @@ import argparse
 
 
 # names of possible commands
-commands = ["cat", "echo", "wc", "pwd", "exit", "grep" ]
+commands = ["cat", "echo", "wc", "pwd", "exit", "grep", "cd", "ls" ]
 
 # names and values of variables
 variables = {}
 
+CURRENT_DIRECTORY = ""
 
 # class for final command with all its arguments
 class Command:
@@ -232,6 +233,10 @@ def exec_part_of_pipe(command):
         return pwd()
     if command.name == "grep":
         return grep(command.args)
+    if command.name == "cd":
+        return cd(command.args)
+    if command.name == "ls":
+        return ls(command.args)
     if command.name == "initialize":
         return ""
     try:
@@ -248,12 +253,11 @@ def exec_part_of_pipe(command):
 # Execution of all commands
 def execution(command):
     next_comm = command
-    arg = exec_part_of_pipe(next_comm)
     while next_comm:
+        arg = exec_part_of_pipe(next_comm)
         if not next_comm.args and (next_comm.name == "wc" or next_comm.name == "cat"):
             next_comm.args = Argument(arg)
             next_comm.std = True
-        arg = exec_part_of_pipe(next_comm)
         next_comm = next_comm.next
     #print(arg)
     return arg
@@ -321,6 +325,8 @@ def wc(args, std):
 
 # pwd - function
 def pwd():
+    if CURRENT_DIRECTORY:
+        return CURRENT_DIRECTORY
     return os.path.abspath(os.curdir)
 
 
@@ -401,6 +407,51 @@ def grep(args):
                 print(line)
     return answer
 
+def calc_path(current_directory, addition_part):
+    arg = addition_part
+    if arg.startswith("/"):
+        current_directory = "/"
+        arg = arg[1:]
+    path = arg.split("/")
+    for next_path_part in path:
+        if not next_path_part:
+            continue
+        if next_path_part == "..":
+            current_directory = "/".join(current_directory.split("/")[:-1])
+            continue
+        if next_path_part == ".":
+            continue
+        current_directory = current_directory + next_path_part + "/"
+        if not os.path.isdir(current_directory):
+            raise FileNotFoundError()
+    if not current_directory.endswith("/"):
+        current_directory += "/"
+
+    return current_directory
+
+def ls(args):
+    if not args:
+        ls_directory = pwd()
+    else:
+        try:
+            ls_directory = calc_path(pwd(), args.name)
+        except FileNotFoundError:
+            return "ls: " + args.name + ": No such file or directory"
+    return "\t".join(os.listdir(ls_directory))
+
+def cd(args):
+    global CURRENT_DIRECTORY
+    if not args:
+        current_directory = "~"
+    current_directory = pwd()
+    arg = args.name
+    try:
+        current_directory = calc_path(current_directory, arg)
+    except FileNotFoundError:
+        return "cd: " + arg + ": No such file or directory"
+    CURRENT_DIRECTORY = current_directory
+    return ""
+
 
 class CLI:
     def start(self):
@@ -441,15 +492,35 @@ def wc_test():
     assert (test("echo aaaaaa|wc") == "1 1 32")
     assert (test("echo|wc") == "1 0 25")
 
-
 def pwd_test():
-    assert (test("pwd") == "D:\ИТМО\Весна 2019\Архитектура ПО\CLI")
-
+    global os
+    global CURRENT_DIRECTORY
+    from collections import namedtuple
+    OS = namedtuple('OsMock', 'path curdir')
+    Path = namedtuple('Path', 'abspath')
+    os = OS(Path(lambda x: 'current_dir'), 'dir')
+    assert (test("pwd") == "current_dir")
+    CURRENT_DIRECTORY = "current_dir2"
+    assert (test("pwd") == "current_dir2")
+    CURRENT_DIRECTORY = ""
 
 def grep_test():
     assert (test("grep 'a' name.txt") == "aaaa")
     assert (test("grep 'a' a") == "a")
     assert (test("grep 'aaa' a") == "")
+
+def ls_test():
+    global os
+    global CURRENT_DIRECTORY
+    from collections import namedtuple
+    OS = namedtuple('OsMock', 'path curdir listdir')
+    Path = namedtuple('Path', 'abspath isdir')
+    os = OS(Path(lambda x: 'current_dir', lambda x: True), 'dir', lambda x: ["1", "2"] \
+        if x=="current_dir" else ["1"])
+    assert (test("ls")=="1\t2")
+    assert (test("ls /")=="1")
+    CURRENT_DIRECTORY = ""
+
 
 
 if __name__ == '__main__':
@@ -459,3 +530,4 @@ if __name__ == '__main__':
     # wc_test()
     # pwd_test()
     # grep_test()
+    # ls_test()
