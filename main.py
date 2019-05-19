@@ -59,6 +59,8 @@ import os
 import re
 import argparse
 
+from collections import namedtuple
+
 
 # names of possible commands
 commands = ["cat", "echo", "wc", "pwd", "exit", "grep", "cd", "ls" ]
@@ -327,7 +329,7 @@ def wc(args, std):
 def pwd():
     if CURRENT_DIRECTORY:
         return CURRENT_DIRECTORY
-    return os.path.abspath(os.curdir)
+    return os.getcwd(os.curdir)
 
 
 # grep - function
@@ -412,21 +414,22 @@ def calc_path(current_directory, addition_part):
     if arg.startswith("/"):
         current_directory = "/"
         arg = arg[1:]
+    if not current_directory.endswith('/'):
+        current_directory += '/'
     path = arg.split("/")
     for next_path_part in path:
         if not next_path_part:
             continue
         if next_path_part == "..":
-            current_directory = "/".join(current_directory.split("/")[:-1])
+            current_directory = "/".join(current_directory.split("/")[:-2]) + '/'
             continue
         if next_path_part == ".":
             continue
         current_directory = current_directory + next_path_part + "/"
         if not os.path.isdir(current_directory):
             raise FileNotFoundError()
-    if not current_directory.endswith("/"):
-        current_directory += "/"
-
+    if current_directory != '/' and current_directory.endswith("/"):
+        current_directory = current_directory[:-1]
     return current_directory
 
 def ls(args):
