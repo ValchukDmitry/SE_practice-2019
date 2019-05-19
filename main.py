@@ -492,17 +492,46 @@ def wc_test():
     assert (test("echo aaaaaa|wc") == "1 1 32")
     assert (test("echo|wc") == "1 0 25")
 
+
+def os_mock(current_dir, listdir_func=None):
+    OS = namedtuple('OsMock', 'path curdir getcwd listdir')
+    Path = namedtuple('Path', 'abspath isdir')
+    os = OS(Path(lambda x: current_dir, lambda x: True), 'dir', \
+        lambda _: current_dir, listdir_func)
+    return os
+
 def pwd_test():
     global os
     global CURRENT_DIRECTORY
-    from collections import namedtuple
-    OS = namedtuple('OsMock', 'path curdir')
-    Path = namedtuple('Path', 'abspath')
-    os = OS(Path(lambda x: 'current_dir'), 'dir')
+    os = os_mock('current_dir')
     assert (test("pwd") == "current_dir")
     CURRENT_DIRECTORY = "current_dir2"
     assert (test("pwd") == "current_dir2")
     CURRENT_DIRECTORY = ""
+
+def cd_test():
+    global os
+    global CURRENT_DIRECTORY
+    os = os_mock('current_dir')
+    test('cd /')
+    assert (CURRENT_DIRECTORY == "/")
+    CURRENT_DIRECTORY = ""
+    test('cd current_dir2')
+    assert (CURRENT_DIRECTORY == "current_dir/current_dir2")
+    CURRENT_DIRECTORY = ""
+
+def calc_path_test():
+    global os
+    global CURRENT_DIRECTORY
+    os = os_mock('current_dir')
+    assert (calc_path('/', 'hello') == '/hello')
+    assert (calc_path('/hello', 'hello') == '/hello/hello')
+    assert (calc_path('/hello', '/') == '/')
+    assert (calc_path('/hello', '/other_hello') == '/other_hello')
+    assert (calc_path('/hello/', 'other_hello') == '/hello/other_hello')
+    assert (calc_path('/hello/', 'other_hello/') == '/hello/other_hello')
+    CURRENT_DIRECTORY = ""
+
 
 def grep_test():
     assert (test("grep 'a' name.txt") == "aaaa")
@@ -512,11 +541,7 @@ def grep_test():
 def ls_test():
     global os
     global CURRENT_DIRECTORY
-    from collections import namedtuple
-    OS = namedtuple('OsMock', 'path curdir listdir')
-    Path = namedtuple('Path', 'abspath isdir')
-    os = OS(Path(lambda x: 'current_dir', lambda x: True), 'dir', lambda x: ["1", "2"] \
-        if x=="current_dir" else ["1"])
+    os = os_mock('current_dir', lambda x: ["1", "2"] if x=="current_dir" else ["1"])
     assert (test("ls")=="1\t2")
     assert (test("ls /")=="1")
     CURRENT_DIRECTORY = ""
@@ -531,3 +556,5 @@ if __name__ == '__main__':
     # pwd_test()
     # grep_test()
     # ls_test()
+    # cd_test()
+    # calc_path_test()
