@@ -329,7 +329,7 @@ def wc(args, std):
 def pwd():
     if CURRENT_DIRECTORY:
         return CURRENT_DIRECTORY
-    return os.getcwd(os.curdir)
+    return os.getcwd()
 
 
 # grep - function
@@ -432,6 +432,13 @@ def calc_path(current_directory, addition_part):
         current_directory = current_directory[:-1]
     return current_directory
 
+
+"""
+Command, which returns string with files in current directory if there is no arguments
+or in directory from argument.
+
+@param args: list with zero or one element -- relative or absolute path
+"""
 def ls(args):
     if not args:
         ls_directory = pwd()
@@ -442,6 +449,12 @@ def ls(args):
             return "ls: " + args.name + ": No such file or directory"
     return "\t".join(os.listdir(ls_directory))
 
+"""
+Command, which changes current directory by relative or absolute path. If list
+of arguments is empty, changes directory to current user`s home.
+
+@param args: list with zero or one element -- relative or absolute path
+"""
 def cd(args):
     global CURRENT_DIRECTORY
     if not args:
@@ -500,7 +513,7 @@ def os_mock(current_dir, listdir_func=None):
     OS = namedtuple('OsMock', 'path curdir getcwd listdir')
     Path = namedtuple('Path', 'abspath isdir')
     os = OS(Path(lambda x: current_dir, lambda x: True), 'dir', \
-        lambda _: current_dir, listdir_func)
+        lambda: current_dir, listdir_func)
     return os
 
 def pwd_test():
@@ -552,7 +565,7 @@ def ls_test():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
     # echo_test()
     # cat_test()
     # wc_test()
