@@ -409,6 +409,13 @@ def grep(args):
                 print(line)
     return answer
 
+"""
+Inner function to resolve new path from current path and additional part.
+
+@param current_directory: string of current directory
+@param addition_part: string of additional part
+@raise FileNotFoundError: in case of final path is not exists
+"""
 def calc_path(current_directory, addition_part):
     arg = addition_part
     if arg.startswith("/"):
