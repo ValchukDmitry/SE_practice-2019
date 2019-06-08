@@ -465,7 +465,10 @@ of arguments is empty, changes directory to current user`s home.
 def cd(args):
     global CURRENT_DIRECTORY
     if not args:
-        current_directory = "~"
+        CURRENT_DIRECTORY = os.path.expanduser('~')
+        return ""
+    if args.next:
+        return "Too many arguments (zero or one expected)"
     current_directory = pwd()
     arg = args.name
     try:
@@ -542,6 +545,8 @@ def cd_test():
     test('cd current_dir2')
     assert (CURRENT_DIRECTORY == "current_dir/current_dir2")
     CURRENT_DIRECTORY = ""
+    assert("Too many arguments (zero or one expected)" == test('cd .. ..'))
+
 
 def calc_path_test():
     global os
@@ -572,7 +577,7 @@ def ls_test():
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     # echo_test()
     # cat_test()
     # wc_test()
